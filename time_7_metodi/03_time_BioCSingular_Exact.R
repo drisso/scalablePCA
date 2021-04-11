@@ -21,16 +21,12 @@ nworkers <- 6
 
 
 
-invisible(scePCA <- BiocSingular::runPCA(prova, rank=50,
-                                         scale = TRUE,
-                                         BSPARAM = BiocSingular::ExactParam(),
-                                         BPPARAM = MulticoreParam(nworkers)))
 here()
 #100k
 time.start <- proc.time()
-sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainData", "TENxBrainData_100k",  paste0("TENxBrainData_100k")), prefix="")
+sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainDataSE", "TENxBrainData_100k"), prefix="")
 #sce@assays@data@listData[["counts"]]<- sce@assays@data@listData[["X"]]
-sce@assays@data@listData[["logcounts"]]<- sce@assays@data@listData[["counts"]]
+#sce@assays@data@listData[["logcounts"]]<- sce@assays@data@listData[["counts"]]
 invisible(scePCA <- scater::runPCA(sce, ncomponents = 50,
                                    ntop = 1000,
                                    scale = TRUE,
@@ -41,8 +37,8 @@ time100k_03<- time.end - time.start
 
 #500k
 time.start <- proc.time()
-sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainData", "TENxBrainData_500k", paste0("TENxBrainData_500k")), prefix="")
-sce@assays@data@listData[["logcounts"]]<- sce@assays@data@listData[["counts"]]
+sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainDataSE", "TENxBrainData_500k"), prefix="")
+#sce@assays@data@listData[["logcounts"]]<- sce@assays@data@listData[["counts"]]
 
 invisible(scePCA <- scater::runPCA(sce, ncomponents = 50,
                                    ntop = 1000,
@@ -54,8 +50,8 @@ time500k_03 <- time.end - time.start
 
 #1000k
 time.start <- proc.time()
-sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainData", "TENxBrainData_1000k", paste0("TENxBrainData_1000k")), prefix="")
-sce@assays@data@listData[["logcounts"]]<- sce@assays@data@listData[["counts"]]
+sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainDataSE", "TENxBrainData_1000k"), prefix="")
+#sce@assays@data@listData[["logcounts"]]<- sce@assays@data@listData[["counts"]]
 invisible(scePCA <- scater::runPCA(sce, ncomponents = 50,
                                    ntop = 1000,
                                    scale = TRUE,
@@ -67,8 +63,9 @@ time1000k_03 <- time.end - time.start
 #1.3M
 
 time.start <- proc.time()
-sce <- readH5AD(example_h5ad, use_hdf5 = TRUE)
-sce@assays@data@listData[["counts"]]<- sce@assays@data@listData[["X"]]
+sce <- loadHDF5SummarizedExperiment(dir = here("time_7_metodi/data/subset/TENxBrainDataSE", "TENxBrainData_1.3M"), prefix="")
+
+#sce@assays@data@listData[["counts"]]<- sce@assays@data@listData[["X"]]
 assayNames(sce) <- "logcounts"
 invisible(scePCA <- scater::runPCA(sce, ncomponents = 50,
                                    ntop = 1000,
