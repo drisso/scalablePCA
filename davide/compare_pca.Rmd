@@ -181,28 +181,28 @@ is_sparse(logcounts(top))
 Log and subset are delayed operations, we need to realize the matrix to be able to run PCA.
 
 ```{r realize_dense}
-ltop <- realize(logcounts(top), BACKEND = "HDF5Array")
-ltop <- realize(t(ltop), BACKEND = "HDF5Array")
-seed(ltop)
-path(ltop)
-chunkdim(ltop)
-is_sparse(ltop)
+ltop_dense <- realize(logcounts(top), BACKEND = "HDF5Array")
+ltop_dense <- realize(t(ltop_dense), BACKEND = "HDF5Array")
+seed(ltop_dense)
+path(ltop_dense)
+chunkdim(ltop_dense)
+is_sparse(ltop_dense)
 ```
 
 We can now use BiocSingular to run the actual PCA. We don't need `deferred=TRUE` here, since we are not using sparsity, but I'll keep it for consistency.
 
 ```{r pca_dense}
-system.time(random_pca <- BiocSingular::runPCA(ltop, rank = 50,
+system.time(random_pca <- BiocSingular::runPCA(ltop_dense, rank = 50,
                                                center = FALSE, scale = FALSE,
                                                BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
                                                BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
-system.time(exact_pca <- BiocSingular::runPCA(ltop, rank = 50,
+system.time(exact_pca <- BiocSingular::runPCA(ltop_dense, rank = 50,
                                               center = TRUE, scale = FALSE,
                                               BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
-system.time(irlba_pca <- BiocSingular::runPCA(ltop, rank = 50,
+system.time(irlba_pca <- BiocSingular::runPCA(ltop_dense, rank = 50,
                                               center = TRUE, scale = FALSE,
                                               BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
@@ -211,19 +211,19 @@ system.time(irlba_pca <- BiocSingular::runPCA(ltop, rank = 50,
 From the BiocSingular documentation, "f the dimensions of the input matrix are very different, it may be faster to compute the cross-product and perform the SVD on the resulting square matrix". Here we try that route.
 
 ```{r crossprod_dense}
-system.time(random_pca <- BiocSingular::runPCA(ltop, rank = 50,
+system.time(random_pca <- BiocSingular::runPCA(ltop_dense, rank = 50,
                                                center = TRUE, scale = FALSE,
                                                BSPARAM = BiocSingular::RandomParam(deferred = TRUE,
                                                                                    fold = 1),
                                                BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
-system.time(exact_pca <- BiocSingular::runPCA(ltop, rank = 50,
+system.time(exact_pca <- BiocSingular::runPCA(ltop_dense, rank = 50,
                                               center = TRUE, scale = FALSE,
                                               BSPARAM = BiocSingular::ExactParam(deferred = TRUE,
                                                                                  fold = 1),
                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
-system.time(irlba_pca <- BiocSingular::runPCA(ltop, rank = 50,
+system.time(irlba_pca <- BiocSingular::runPCA(ltop_dense, rank = 50,
                                               center = TRUE, scale = FALSE,
                                               BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE,
                                                                                  fold = 1),
@@ -233,7 +233,7 @@ system.time(irlba_pca <- BiocSingular::runPCA(ltop, rank = 50,
 Here we apply BiocSklearn to the ltop matrix.
 
 ```{r biocsklearn_dense}
-ltop_path <- path(ltop)
+ltop_path <- path(ltop_dense)
 system.time(sk_pca <- skIncrPCA_h5(ltop_path, n_components=50,
                                    dsname = seed(ltop)@group, chunk.size = 5000))
 ```
@@ -242,7 +242,7 @@ Here we apply the python methods.
 
 ```{r write_h5ad}
 library(zellkonverter)
-sce <- SingleCellExperiment(assays = list(counts = ltop))
+sce <- SingleCellExperiment(assays = list(counts = ltop_dense))
 writeH5AD(sce, file = "top_dense.h5ad")
 ```
 
@@ -274,4 +274,55 @@ toc = time.perf_counter()
 toc - tic
 ```
 
+# Sparse TileDb
+
+First, we transform the data in a TileDBArray.
+
+```{r transform}
+ltop_tile <- as(ltop, "TileDBArray")
+ltop_tile
+
+is_sparse(ltop_tile)
+```
+
+We can now use BiocSingular to run the actual PCA. We don't need `deferred=TRUE` here, since we are not using sparsity, but I'll keep it for consistency.
+
+```{r pca_dense}
+system.time(random_pca <- BiocSingular::runPCA(ltop_tile, rank = 50,
+                                               center = FALSE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(exact_pca <- BiocSingular::runPCA(ltop_tile, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(irlba_pca <- BiocSingular::runPCA(ltop_tile, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+```
+
+From the BiocSingular documentation, "f the dimensions of the input matrix are very different, it may be faster to compute the cross-product and perform the SVD on the resulting square matrix". Here we try that route.
+
+```{r crossprod_dense}
+system.time(random_pca <- BiocSingular::runPCA(ltop_tile, rank = 50,
+                                               center = TRUE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE,
+                                                                                   fold = 1),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(exact_pca <- BiocSingular::runPCA(ltop_tile, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE,
+                                                                                 fold = 1),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(irlba_pca <- BiocSingular::runPCA(ltop_tile, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE,
+                                                                                 fold = 1),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+```
 
