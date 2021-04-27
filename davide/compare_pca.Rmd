@@ -279,6 +279,7 @@ toc - tic
 First, we transform the data in a TileDBArray.
 
 ```{r transform}
+library(TileDBArray)
 ltop_tile <- as(ltop, "TileDBArray")
 ltop_tile
 
