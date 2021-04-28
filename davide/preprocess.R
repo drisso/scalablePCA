@@ -22,6 +22,7 @@ is_sparse(tenx_sparse)
 
 ## Dense HDF5 format
 sce <- TENxBrainData()
+rownames(sce) <- rowData(sce)$Ensembl
 sce <- sce[rowData(adata)$gene_ids,]
 
 tenx <- counts(sce)
