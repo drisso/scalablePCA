@@ -16,7 +16,7 @@ library(BiocSingular)
 library(BiocParallel)
 library(scuttle)
 
-ncores <- 10
+ncores <- 6
 ```
 
 # Sparse HDF5 file (TENxMatrix)
@@ -59,7 +59,7 @@ Log and subset are delayed operations, we need to realize the matrix to be able 
 
 ```{r realize}
 ltop <- realize(logcounts(top), BACKEND = "TENxMatrix")
-ltop <- realize(t(ltop), BACKEND = "TENxMatrix")
+ltop <- t(ltop)
 seed(ltop)
 path(ltop)
 chunkdim(ltop)

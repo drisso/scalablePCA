@@ -1,0 +1,111 @@
+---
+title: "Compare PCA on HDF5 sparse file (10X format)"
+author: "Davide Risso"
+date: "4/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results="markup")
+```
+
+```{r packages, message=FALSE, warning=FALSE}
+library(HDF5Array)
+library(BiocSingular)
+library(BiocParallel)
+
+ncores <- 6
+```
+
+# Sparse HDF5 file (TENxMatrix)
+
+First, we read the data in sparse format from the 10X Genomics file.
+
+```{r readin}
+tenx <- TENxMatrix("1M_neurons_data_sparse.h5")
+class(tenx)
+is_sparse(tenx)
+tenx <- t(tenx)
+```
+
+We use BiocSingular to run the PCA. We use `deferred=TRUE` to defer centering and avoid breaking sparsity.
+
+```{r pca}
+system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                               center = TRUE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+```
+
+From the BiocSingular documentation, "f the dimensions of the input matrix are very different, it may be faster to compute the cross-product and perform the SVD on the resulting square matrix". Here we try that route.
+
+```{r crossprod}
+system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                               center = TRUE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE,
+                                                                                   fold = 1),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE,
+                                                                                 fold = 1),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE,
+                                                                                 fold = 1),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+```
+
+Here we apply BiocSklearn to the tenx matrix. Does not seem to work with TENx files, maybe because the dataset is "assumed to be 2-dimensional array"?
+
+
+```{r biocsklearn, eval=FALSE}
+library(BiocSklearn)
+ltop_path <- path(tenx)
+
+system.time(sk_pca <- skIncrPCA_h5(ltop_path, n_components=50,
+                                   dsname = seed(tenx)@group, chunk.size = 5000))
+```
+
+Here we apply the python methods.
+
+```{python py_pca}
+import scanpy as sc
+import anndata as ad
+from sklearn.decomposition import PCA, IncrementalPCA
+import time
+
+sc.settings.verbosity  = 3
+
+filename = ltop_path
+adata = sc.read_10x_h5(filename)
+
+## scanpy PCA
+sc.tl.pca(adata)
+
+## scikitlearn incremental PCA
+tic = time.perf_counter()
+ipca = IncrementalPCA(n_components=50)
+X_ipca = ipca.fit_transform(adata.X)
+toc = time.perf_counter()
+toc - tic
+
+tic = time.perf_counter()
+pca = PCA(n_components=50)
+X_pca = pca.fit_transform(adata.X)
+toc = time.perf_counter()
+toc - tic
+```
