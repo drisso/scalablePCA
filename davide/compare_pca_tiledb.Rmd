@@ -32,7 +32,7 @@ We can now use BiocSingular to run the actual PCA.
 ```{r pca}
 system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
                                                center = FALSE, scale = FALSE,
-                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
+                                               BSPARAM = BiocSingular::RandomParam(),
                                                BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
 # system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
