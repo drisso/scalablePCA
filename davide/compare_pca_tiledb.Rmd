@@ -1,0 +1,79 @@
+---
+title: "Compare PCA on TileDB sparse file"
+author: "Davide Risso"
+date: "4/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results="markup")
+```
+
+```{r packages, message=FALSE, warning=FALSE}
+library(TileDBArray)
+library(BiocSingular)
+library(BiocParallel)
+
+ncores <- 6
+```
+
+# Sparse TileDb
+
+First, we read the data in a TileDBArray.
+
+```{r transform}
+tenx <- TileDBArray("1M_neurons_data_sparse.tdb")
+tenx <- t(tenx)
+class(tenx)
+is_sparse(tenx)
+```
+
+We can now use BiocSingular to run the actual PCA. We don't need `deferred=TRUE` here, since we are not using sparsity, but I'll keep it for consistency.
+
+```{r pca_dense}
+system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                               center = FALSE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+# system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
+#                                               center = TRUE, scale = FALSE,
+#                                               BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
+#                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+head(random_pca$x[,1:2])
+head(exact_pca$x[,1:2])
+
+```
+
+From the BiocSingular documentation, "f the dimensions of the input matrix are very different, it may be faster to compute the cross-product and perform the SVD on the resulting square matrix". Here we try that route.
+
+```{r crossprod_dense}
+system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                               center = TRUE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE,
+                                                                                   fold = 1),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                              center = TRUE, scale = FALSE,
+                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE,
+                                                                                 fold = 1),
+                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+# system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
+#                                               center = TRUE, scale = FALSE,
+#                                               BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE,
+#                                                                                  fold = 1),
+#                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+head(random_pca$x[,1:2])
+head(exact_pca$x[,1:2])
+
+```
+
