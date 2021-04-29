@@ -25,7 +25,7 @@ ncores <- 6
 First, we read the data in dense format from the TENxBrainData package.
 
 ```{r readin_dense}
-tenx <- TENxMatrix("1M_neurons_data_dense_t.h5")
+tenx <- HDF5Matrix("1M_neurons_data_dense_t.h5", name = "mm10")
 class(tenx)
 is_sparse(tenx)
 ```
