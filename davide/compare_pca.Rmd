@@ -52,7 +52,14 @@ head(random_pca$x[,1:2])
 
 ```
 
-We don't need `deferred=TRUE` here, since we are not using sparsity, but I'll keep it for consistency.
+We read it again, but as sparse and use `deferred=TRUE`.
+
+```{r readin_sparse}
+tenx <- HDF5Array("1M_neurons_data_dense_t.h5", name = "mm10", as.sparse = TRUE)
+class(tenx)
+is_sparse(tenx)
+```
+
 
 ```{r pca_def}
 system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
