@@ -31,8 +31,9 @@ is_sparse(tenx)
 seed(tenx)
 showtree(tenx)
 
-tenx_dense <- writeHDF5Array(tenx, filepath = "1M_neurons_data_dense.h5",
+tenx_dense <- writeHDF5Array(t(tenx), filepath = "1M_neurons_data_dense_t.h5",
                              name = "mm10", verbose = TRUE)
 
 ## TileDB format
-tenx_db <- writeTileDBArray(tenx_sparse, path = "1M_neurons_data_sparse.tdb")
+tenx_db <- writeTileDBArray(t(tenx_sparse), path = "1M_neurons_data_sparse_t.tdb",
+                            sparse = TRUE)
