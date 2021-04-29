@@ -28,25 +28,46 @@ is_sparse(tenx)
 tenx <- t(tenx)
 ```
 
-We use BiocSingular to run the PCA. We use `deferred=TRUE` to defer centering and avoid breaking sparsity.
+We use BiocSingular to run the PCA. 
 
 ```{r pca}
 system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
                                                center = TRUE, scale = FALSE,
-                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
+                                               BSPARAM = BiocSingular::RandomParam(),
                                                BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
-system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
-                                              center = TRUE, scale = FALSE,
-                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
-                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+# system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+#                                               center = TRUE, scale = FALSE,
+#                                               BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
+#                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
 # system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
 #                                               center = TRUE, scale = FALSE,
 #                                               BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
 #                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
 head(random_pca$x[,1:2])
-head(exact_pca$x[,1:2])
+```
+
+
+We use `deferred=TRUE` to defer centering and avoid breaking sparsity.
+
+```{r pca_def}
+system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
+                                               center = TRUE, scale = FALSE,
+                                               BSPARAM = BiocSingular::RandomParam(deferred = TRUE),
+                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+# system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+#                                               center = TRUE, scale = FALSE,
+#                                               BSPARAM = BiocSingular::ExactParam(deferred = TRUE),
+#                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+
+# system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
+#                                               center = TRUE, scale = FALSE,
+#                                               BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
+#                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
+head(random_pca$x[,1:2])
+
 ```
 
 From the BiocSingular documentation, "f the dimensions of the input matrix are very different, it may be faster to compute the cross-product and perform the SVD on the resulting square matrix". Here we try that route.
@@ -58,11 +79,11 @@ system.time(random_pca <- BiocSingular::runPCA(tenx, rank = 50,
                                                                                    fold = 1),
                                                BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
-system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
-                                              center = TRUE, scale = FALSE,
-                                              BSPARAM = BiocSingular::ExactParam(deferred = TRUE,
-                                                                                 fold = 1),
-                                              BPPARAM = BiocParallel::MulticoreParam(ncores)))
+# system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
+#                                               center = TRUE, scale = FALSE,
+#                                               BSPARAM = BiocSingular::ExactParam(deferred = TRUE,
+#                                                                                  fold = 1),
+#                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
 
 # system.time(irlba_pca <- BiocSingular::runPCA(tenx, rank = 50,
 #                                               center = TRUE, scale = FALSE,
@@ -70,6 +91,5 @@ system.time(exact_pca <- BiocSingular::runPCA(tenx, rank = 50,
 #                                                                                  fold = 1),
 #                                               BPPARAM = BiocParallel::MulticoreParam(ncores)))
 head(random_pca$x[,1:2])
-head(exact_pca$x[,1:2])
 
 ```
