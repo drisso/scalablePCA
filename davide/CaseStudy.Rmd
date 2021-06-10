@@ -1,0 +1,68 @@
+---
+title: "Case study: reanalysis of Cao et al. (2020)"
+author: "Davide Risso"
+date: "4/27/2021"
+output: html_document
+---
+
+# Introduction
+
+Cao et al. used sci-RNA-seq3 to create a human cell atlas of fetal gene expression.
+
+The dataset is made of about 4 million cells.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, error = FALSE, message = FALSE)
+```
+
+```{r packages}
+library(zellkonverter)
+library(scuttle)
+library(scone)
+library(DelayedArray)
+library(scater)
+library(mbkmeans)
+```
+
+```{r data_in}
+dati <- "GSE156793_S3_gene_count.h5ad"
+sce <- readH5AD(dati, use_hdf5 = TRUE)
+assayNames(sce) <- "counts"
+sce
+```
+
+# Normalization, filtering, PCA
+
+```{r filtering}
+num_reads = 1
+num_cells = 0.01*ncol(sce)
+is_exp = rowSums(assay(sce) >= num_reads ) >= num_cells
+table(is_exp)
+
+sce <- sce[is_exp,]
+```
+
+```{r norm}
+sce <- PsiNorm(sce)
+sce <- logNormCounts(sce)
+sce
+```
+
+```{r pca}
+system.time(sce <- scater::runPCA(sce, 
+                      BPPARAM = BiocParallel::MulticoreParam(10),
+                      BSPARAM = BiocSingular::RandomParam()))
+scater::plotPCA(sce, colour_by = "")
+```
+
+```{r clustering}
+## here run mbkmeans
+
+```
+
+
+```{r umap}
+## here run UMAP
+
+# scater::plotUMAP(sce, colour_by = "")
+```
