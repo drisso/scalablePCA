@@ -32,13 +32,6 @@ assayNames(sce) <- "counts"
 sce
 ```
 
-# Exploratory Data Analysis
-
-```{r eda}
-table(sce$)
-
-```
-
 # Normalization, filtering, PCA
 
 ```{r filtering}
@@ -56,45 +49,50 @@ sce <- logNormCounts(sce)
 sce
 ```
 
+```{r hvg}
+vars <- rowVars(counts(sce))
+names(vars) <- rownames(sce)
+vars <- sort(vars, decreasing = TRUE)
+sce <- sce[names(vars)[seq(1000)],]
+sce
+```
+
 ```{r realize}
 saveHDF5SummarizedExperiment(sce, 
-                             dir = "GSE156793_subset", 
+                             dir = "GSE156793_hvg", 
                              prefix="", replace=TRUE, 
                              level=NULL, verbose=FALSE)
 ```
 
 ```{r load}
-sce <- loadHDF5SummarizedExperiment(dir = "GSE156793_subset")
+sce <- loadHDF5SummarizedExperiment(dir = "GSE156793_hvg")
 sce
 ```
 
 ```{r pca}
 system.time(sce <- scater::runPCA(sce, 
-                      BPPARAM = BiocParallel::MulticoreParam(10),
+                      BPPARAM = BiocParallel::MulticoreParam(5),
                       BSPARAM = BiocSingular::RandomParam()))
-scater::plotPCA(sce, colour_by = "")
 ```
 
 ```{r clustering}
 ## here run mbkmeans
 k_list <- seq(15, 30)
-if(!file.exists(here("main/case_studies/data/full/TENxBrainData",
-                     "mbkmeans_pca50_k15-30_bs500.rds"))) {
-  time.start <- proc.time()
-  km_res <- lapply(k_list, function(k) {
-    mbkmeans(sce, clusters = k, 
-             batch_size = 500,
-             reduceMethod = "PCA",
-             calc_wcss = TRUE,
-             BPPARAM = MulticoreParam(nworkers)
-    )
-  })
-  time.end <- proc.time()
-  time <- time.end - time.start
-  times[tt] <- time[3]
-  tt <- tt+1
-  cat("Clustering:", time[3]/60, "mins")
-  
+time.start <- proc.time()
+km_res <- lapply(k_list, function(k) {
+  mbkmeans(sce, clusters = k, 
+           batch_size = 500,
+           reduceMethod = "PCA",
+           calc_wcss = TRUE,
+           BPPARAM = MulticoreParam(nworkers)
+  )
+})
+time.end <- proc.time()
+time <- time.end - time.start
+times[tt] <- time[3]
+tt <- tt+1
+cat("Clustering:", time[3]/60, "mins")
+
   saveRDS(km_res, file = here("main/case_studies/data/full/TENxBrainData",
                               "mbkmeans_pca50_k15-30_bs500.rds"))
   saveRDS(times, file = here("main/case_studies/data/full/TENxBrainData",
@@ -116,7 +114,6 @@ colData(sce) <- cbind(colData(sce), clusters)
 
 
 ```{r umap}
-## here plot UMAP
 
 # scater::plotUMAP(sce, colour_by = "")
 ```
